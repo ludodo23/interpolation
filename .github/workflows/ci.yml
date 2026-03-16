@@ -42,4 +42,4 @@ jobs:
 
       # 7️⃣ Create the package and test
       - name: Conan Create
-        run: conan create . user/testing --build=missing
+        run: conan create . --build=missing
