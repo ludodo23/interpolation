@@ -35,7 +35,6 @@ class InterpolationConan(ConanFile):
     def build(self):
         if not self.conf.get("tools.build:skip_test", default=False):
             cmake = CMake(self)
-            print(f"Script: {self.source_folder}")
             cmake.configure(build_script_folder=os.path.join(self.source_folder, "test"))
             cmake.build()
             self.run(os.path.join(self.cpp.build.bindir, "test_interpolation"))
