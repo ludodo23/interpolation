@@ -16,8 +16,8 @@ TEST_CASE("Catmull-Rom spline", "[catmull-rom]") {
 
     double v = cr.eval(1.5);
 
-    REQUIRE(h.eval(0.0) == Catch::Approx(0.0));
-    REQUIRE(h.eval(1.0) == Catch::Approx(1.0));
-    REQUIRE(h.eval(2.0) == Catch::Approx(2.0));
-    REQUIRE(h.eval(3.0) == Catch::Approx(3.0));
+    REQUIRE(cr.eval(0.0) == Catch::Approx(0.0));
+    REQUIRE(cr.eval(1.0) == Catch::Approx(1.0));
+    REQUIRE(cr.eval(2.0) == Catch::Approx(2.0));
+    REQUIRE(cr.eval(3.0) == Catch::Approx(3.0));
 }
