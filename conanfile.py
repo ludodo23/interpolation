@@ -37,7 +37,7 @@ class InterpolationConan(ConanFile):
             cmake = CMake(self)
             cmake.configure(build_script_folder="test")
             cmake.build()
-            self.run(os.path.join(self.cpp.build.bindir, "test_sum"))
+            self.run(os.path.join(self.cpp.build.bindir, "test_interpolation"))
 
     def package(self):
         # This will also copy the "include" folder
