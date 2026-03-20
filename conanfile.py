@@ -23,7 +23,7 @@ class InterpolationConan(ConanFile):
         if version:
             self.version = version.group(1)
 
-    def requirements(self):
+    def build_requirements(self):
         self.test_requires("catch2/3.4.0")
 
     def validate(self):
