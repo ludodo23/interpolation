@@ -10,7 +10,7 @@ from conan.tools.build import check_min_cppstd
 class InterpolationConan(ConanFile):
     name = "interpolation"
     settings = "os", "arch", "compiler", "build_type"
-    exports_sources = "include/*", "test/*"
+    exports_sources = "include/*", "tests/*"
     no_copy_source = True
     generators = "CMakeToolchain", "CMakeDeps"
     package_type = "header-library"
@@ -35,7 +35,7 @@ class InterpolationConan(ConanFile):
     def build(self):
         if not self.conf.get("tools.build:skip_test", default=False):
             cmake = CMake(self)
-            cmake.configure(build_script_folder=os.path.join(self.source_folder, "test"))
+            cmake.configure(build_script_folder=os.path.join(self.source_folder, "tests"))
             cmake.build()
             self.run(os.path.join(self.cpp.build.bindir, "test_interpolation"))
 
