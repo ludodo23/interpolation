@@ -45,8 +45,9 @@ jobs:
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
-  with:
-    files: build/test-results.xml
+        with:
+          files: build/test-results.xml
+
       # Create the package and test
       - name: Conan Create
         run: conan create . --build=missing
