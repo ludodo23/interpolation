@@ -11,35 +11,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout
+      # Checkout
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Setup Python for Conan
+      # Setup Python for Conan
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.x"
 
-      # 3️⃣ Install Conan
+      # Install Conan
       - name: Install Conan
         run: |
           python -m pip install --upgrade pip
           pip install conan
 
-      # 4️⃣ Configure default Conan profile
+      # Configure default Conan profile
       - name: Configure Conan profile
         run: |
           conan profile detect
 
-      # 5️⃣ Install dependencies
+      # Install dependencies
       - name: Conan Install
         run: conan install . --build=missing
 
-      # 6️⃣ Build the project
+      # Build the project
       - name: Conan Build
         run: conan build .
+      
+      - name: Run tests
+        run: ctest --test-dir build  --output-on-failure --output-junit test-results.xml
 
-      # 7️⃣ Create the package and test
+      # Create the package and test
       - name: Conan Create
         run: conan create . --build=missing
