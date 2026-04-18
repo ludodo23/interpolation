@@ -208,7 +208,7 @@ class UniformGridInterval : public IntervalSearch {
 public:
     UniformGridInterval(std::shared_ptr<const std::vector<double>> x) : IntervalSearch(x) {
             x0_ = (*x_)[0];
-            dx_ = (*x_)[1] - (*x)[0];
+            dx_ = (*x_)[1] - (*x_)[0];
             if (dx_ <= 0.0) {
             INTERP_ERROR("UniformGridInterval: dx must be > 0");
         }
