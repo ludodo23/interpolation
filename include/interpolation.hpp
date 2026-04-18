@@ -215,7 +215,8 @@ public:
     }
 protected:
     int find_impl(double X) const override {
-        return int(std::floor((X - x0_) / dx_));
+        int i = int(std::floor((X - x0_) / dx_));
+        return std::clamp(i, 0, int(x_->size()) - 2);
     }
 private:
     double x0_, dx_;
