@@ -452,14 +452,20 @@ public:
         double h01 = -2 * t3 + 3 * t2;
         double h11 = t3 - t2;
 
-        
-        T ym1 = i == 0 ? (*y_)[i] : (*y_)[i-1];
+        T ym1 = (i == 0) ? (*y_)[0] : (*y_)[i-1];
+        T y2  = (i+2 >= y_->size()) ? (*y_)[i+1] : (*y_)[i+2];
         T y0 = (*y_)[i];
         T y1 = (*y_)[i+1];
-        T y2 = i == y_->size() - 1 ? (*y_)[i+1] : (*y_)[i+2];
 
-        T res = T{};
-        res = res + (h00 - 0.5*h11) * y0 - 0.5*h01*ym1 + (h10 - 0.5*h01) * y1 + 0.5*h11*y2;
+        // non uniform Catmull-Rom. 
+        T m0 = (y1 - ym1) / (x1 - x_{i-1});
+        T m1 = (y2 - y0) / (x_{i+2} - x0);
+
+        T res = h00 * y0
+              + h10 * (m0 * h)
+              + h01 * y1
+              + h11 * (m1 * h);
+
         return res;
     }
 
