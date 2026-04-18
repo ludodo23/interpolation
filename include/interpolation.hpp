@@ -443,6 +443,8 @@ public:
     T eval(double X) const override {
         int i = this->search(X);
         double x0 = (*x_)[i], x1 = (*x_)[i + 1];
+        double xm1 = (i == 0) ? (*x_)[0] : (*x_)[i-1];
+        double x2  = (i+2 >= y_->size()) ? (*x_)[i+1] : (*x_)[i+2];
         double h = x1 - x0;
         double t = (X - x0) / h;
         double t2 = t * t, t3 = t2 * t;
@@ -458,8 +460,8 @@ public:
         T y1 = (*y_)[i+1];
 
         // non uniform Catmull-Rom. 
-        T m0 = (y1 - ym1) / (x1 - x_{i-1});
-        T m1 = (y2 - y0) / (x_{i+2} - x0);
+        T m0 = (y1 - ym1) / (x1 - xm1);
+        T m1 = (y2 - y0) / (x2 - x0);
 
         T res = h00 * y0
               + h10 * (m0 * h)
