@@ -404,8 +404,7 @@ public:
         double h11 = t3 - t2;
 
         // Note: dy_dx_ stores derivative dy/dx; multiply by h for Hermite basis
-        T res = T{};
-        res = res + ((*y_)[i]) * h00 + (((*dy_dx_)[i]) * (h * h10)) + (((*y_)[i + 1]) * h01) + (((*dy_dx_)[i + 1]) * (h * h11));
+        T res = ((*y_)[i]) * h00 + (((*dy_dx_)[i]) * (h * h10)) + (((*y_)[i + 1]) * h01) + (((*dy_dx_)[i + 1]) * (h * h11));
         return res;
     }
 };
