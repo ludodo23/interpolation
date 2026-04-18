@@ -192,7 +192,7 @@ protected:
      * 
      * Override IntervalSearch to update cache.
     */
-    virtual int get_last() const {
+    virtual int get_last() const override {
         last_ = IntervalSearch::get_last();
         return static_cast<int>(last_);
     }
