@@ -51,7 +51,7 @@
 #define INTERP_ERROR(msg) throw std::runtime_error(msg)
 #endif
 
-#define INTERPOLATION_VERSION "0.1.0"
+#define INTERPOLATION_VERSION "0.2.0"
 
 
 /// @brief Interpolation module.
@@ -77,7 +77,6 @@ constexpr T lerp(const T &a, const T &b, double t) {
     return a * (1.0 - t) + b * t;
 }
 
-#if __cplusplus < 201703L
 /**
  * @brief Generic clamp for scalar/vector-like T.
  * Requires T supports: T * double, T + T
@@ -86,9 +85,6 @@ template <typename T>
 constexpr const T& clamp(const T &v, const T & lo, const T & hi) {
     return (v < lo) ? lo : (hi < v) ? hi : v;
 }
-#else
-using std::clamp; // from <algorithm>
-#endif
 
 // ================================
 // Interval search strategies
@@ -148,7 +144,7 @@ protected:
     int find_impl(double X) const override {
         // upper_bound use a binary search.
         auto it = std::upper_bound(x_->begin(), x_->end(), X); // first element in x > X
-        return static_cast<int>(it - x_->begin()) - 1;  // O(1) instead of std::distance which O(1) is not guaranted.
+        return static_cast<int>(it - x_->begin()) - 1;
     }
 };
 
@@ -156,9 +152,9 @@ protected:
  * @brief Cached interval search that is efficient for monotonic queries.
  * Keeps last index and walks forward/backwards.
  */
-class CachedInterval : public IntervalSearch {
+class LinearCachedIntervalSearch : public IntervalSearch {
 public:
-    CachedInterval(std::shared_ptr<const std::vector<double>> x) : IntervalSearch(x) {}
+    LinearCachedIntervalSearch(std::shared_ptr<const std::vector<double>> x) : IntervalSearch(x) {}
 protected:
     int find_impl(double X) const override {
         int i = static_cast<int>(last_);
@@ -204,19 +200,19 @@ private:
  * @brief Uniform grid: constant spacing dx starting at x0.
  * Faster O(1) index compute.
  */
-class UniformGridInterval : public IntervalSearch {
+class UniformGridIntervalSearch : public IntervalSearch {
 public:
-    UniformGridInterval(std::shared_ptr<const std::vector<double>> x) : IntervalSearch(x) {
+    UniformGridIntervalSearch(std::shared_ptr<const std::vector<double>> x) : IntervalSearch(x) {
             x0_ = (*x_)[0];
             dx_ = (*x_)[1] - (*x_)[0];
             if (dx_ <= 0.0) {
-            INTERP_ERROR("UniformGridInterval: dx must be > 0");
+            INTERP_ERROR("UniformGridIntervalSearch: dx must be > 0");
         }
     }
 protected:
     int find_impl(double X) const override {
         int i = int(std::floor((X - x0_) / dx_));
-        return std::clamp(i, 0, int(x_->size()) - 2);
+        return clamp(i, 0, int(x_->size()) - 2);
     }
 private:
     double x0_, dx_;
@@ -242,7 +238,7 @@ public:
      * @brief Construct from shared pointers (no copy).
      * @param x shared_ptr to vector<double> (x nodes) - must be sorted ascending
      * @param y shared_ptr to vector<T> (y values)
-     * @param s search strategy (if nullptr, default CachedInterval is used)
+     * @param s search strategy (if nullptr, default LinearCachedIntervalSearch is used)
      */
     Interpolator(std::shared_ptr<const std::vector<double>> x,
                  std::shared_ptr<const std::vector<T>> y)
@@ -253,7 +249,7 @@ public:
         if (x_->size() != y_->size()) {
             INTERP_ERROR("Interpolator: x.size() != y.size()");
         }
-        search_ = std::make_shared<CachedInterval>(x_);
+        search_ = std::make_shared<LinearCachedIntervalSearch>(x_);
     }
     Interpolator(std::shared_ptr<const std::vector<T>> y,
                  std::shared_ptr<IntervalSearch> s)
