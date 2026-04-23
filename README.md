@@ -1,6 +1,10 @@
 # Interpolation
 Univariate interpolation as one header only.
 
+# Install
+
+Just copy the header file in your project.
+
 # License 
 This project is licensed under the CeCILL-C license.
 
