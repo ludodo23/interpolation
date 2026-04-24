@@ -12,6 +12,6 @@ See:
 * LICENSE.fr (version française officielle) or https://cecill.info/licences/Licence_CeCILL-C_V1-fr.html for online version.
 * LICENSE.en (official English translation) or https://cecill.info/licences/Licence_CeCILL-C_V1-en.html for online version.
 
-# documentation
+# Documentation
 
-[documentation](https://ludodo23.github.io/interpolation/)
+Full documentation is available [here](https://ludodo23.github.io/interpolation/)
