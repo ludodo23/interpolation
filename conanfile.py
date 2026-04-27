@@ -1,19 +1,39 @@
+from conan import ConanFile
+from conan.tools.files import copy
+from conan.tools.cmake import cmake_layout, CMake, CMakeToolchain
+from conan.tools.build import check_min_cppstd
 import os
 import re
 from pathlib import Path
-from conan import ConanFile
-from conan.tools.files import copy
-from conan.tools.cmake import cmake_layout, CMake
-from conan.tools.build import check_min_cppstd
 
 
 class InterpolationConan(ConanFile):
     name = "interpolation"
+    package_type = "header-library"
+
     settings = "os", "arch", "compiler", "build_type"
+
     exports_sources = "include/*", "tests/*"
     no_copy_source = True
-    generators = "CMakeToolchain", "CMakeDeps"
-    package_type = "header-library"
+
+    generators = "CMakeDeps"
+
+    # -------------------------
+    # OPTIONS
+    # -------------------------
+    options = {
+        "tracy": [True, False],
+        "asan": [True, False],
+        "coverage": [True, False],
+        "perf": [True, False],
+    }
+
+    default_options = {
+        "tracy": False,
+        "asan": False,
+        "coverage": False,
+        "perf": False,
+    }
 
     def set_version(self):
         header = Path(self.recipe_folder) / "include" / "interpolation.hpp"
@@ -32,20 +52,32 @@ class InterpolationConan(ConanFile):
     def layout(self):
         cmake_layout(self)
 
+    def generate(self):
+        tc = CMakeToolchain(self)
+
+        tc.variables["ENABLE_TRACY"] = self.options.tracy
+        tc.variables["ENABLE_ASAN"] = self.options.asan
+        tc.variables["ENABLE_COVERAGE"] = self.options.coverage
+        tc.variables["ENABLE_PERF"] = self.options.perf
+
+        tc.generate()
+
     def build(self):
-        if not self.conf.get("tools.build:skip_test", default=False):
-            cmake = CMake(self)
-            cmake.configure(build_script_folder=os.path.join(self.source_folder, "tests"))
-            cmake.build()
-            self.run(os.path.join(self.cpp.build.bindir, "test_interpolation"))
+        if self.conf.get("tools.build:skip_test", default=False):
+            return
+
+        cmake = CMake(self)
+        cmake.configure()   # ← plus de build_script_folder, il prend la racine
+        cmake.build()
+
+        # ⚠️ On évite CTest pour perf / profiling
+        if not self.options.perf:
+            cmake.ctest(cli_args=["--output-on-failure"])
 
     def package(self):
-        # This will also copy the "include" folder
         copy(self, "*.hpp", self.source_folder, self.package_folder)
 
     def package_info(self):
-        # For header-only packages, libdirs and bindirs are not used
-        # so it's necessary to set those as empty.
         self.cpp_info.bindirs = []
         self.cpp_info.libdirs = []
 
