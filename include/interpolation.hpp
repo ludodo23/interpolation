@@ -392,6 +392,7 @@ public:
         double x0 = (*x_)[i], x1 = (*x_)[i + 1];
         double h = x1 - x0;
         double t = (X - x0) / h;
+        t = clamp(t, 0.0, 1.0);
         double t2 = t * t, t3 = t2 * t;
 
         double h00 = 2 * t3 - 3 * t2 + 1;
@@ -406,7 +407,7 @@ public:
 };
 
 // ================================
-// Catmull-Rom // TODO : non uniform Catmull-Rom.
+// Catmull-Rom
 // ================================
 
 /**
@@ -443,6 +444,7 @@ public:
         double x2  = (i+2 >= y_->size()) ? (*x_)[i+1] : (*x_)[i+2];
         double h = x1 - x0;
         double t = (X - x0) / h;
+        t = clamp(t, 0.0, 1.0);
         double t2 = t * t, t3 = t2 * t;
 
         double h00 = 2 * t3 - 3 * t2 + 1;
