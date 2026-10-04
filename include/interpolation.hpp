@@ -272,7 +272,7 @@ protected:
             std::floor((X - x0_) / dx_)
         );
 
-        return std::clamp(
+        return clamp(
             i,
             0,
             static_cast<int>(x_->size()) - 2
