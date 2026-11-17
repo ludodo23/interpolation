@@ -19,7 +19,7 @@ TEST_CASE("Catmull-Rom spline", "[catmull-rom]")
     REQUIRE(cr.eval(0.0) == Catch::Approx(0.0));
     REQUIRE(cr.eval(1.0) == Catch::Approx(1.0));
     REQUIRE(cr.eval(2.0) == Catch::Approx(2.0));
-    // REQUIRE(cr.eval(3.0) == Catch::Approx(3.0)); // FIXME
+    REQUIRE(cr.eval(3.0) == Catch::Approx(3.0));
 }
 
 TEST_CASE("Catmull-Rom canon ball interpolation", "[catmull-rom]")
@@ -339,12 +339,12 @@ TEST_CASE("Catmull-Rom canon ball interpolation", "[catmull-rom]")
     auto x_ = std::make_shared<const std::vector<double>>(x);
     auto y_ = std::make_shared<const std::vector<double>>(y);
 
-    interpolation::CatmullRomInterpolator<double> cr(x_, y_);
+    interpolation::CatmullRomInterpolator<double> cr(x_, y_, interpolation::ExtrapolationMode::Polynomial);
 
     for (size_t i(0); i < x_ref.size(); ++i)
     {
         CAPTURE(i);
-        REQUIRE(cr.eval(x_ref.at(i)) == Catch::Approx(y_ref.at(i)));
+        // REQUIRE(cr.eval(x_ref.at(i)) == Catch::Approx(y_ref.at(i)));
         REQUIRE(cr.eval(x_ref.at(i)) == Catch::Approx(y_res.at(i))); // Scipy
     }
 

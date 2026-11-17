@@ -38,7 +38,7 @@
 #define INTERP_ERROR(msg) throw std::runtime_error(msg)
 #endif
 
-#define INTERPOLATION_VERSION "0.3.0"
+#define INTERPOLATION_VERSION "0.4.0"
 
 /// @brief Interpolation module.
 namespace interpolation {
@@ -80,6 +80,19 @@ constexpr const T& clamp(
 ) {
     return (v < lo) ? lo : (hi < v) ? hi : v;
 }
+
+/**
+ * @brief Extrapolation mode for interpolators.
+ *
+ * - None : no extrapolation, t is clamped to [0,1] (default safe behaviour).
+ * - Linear : linear extrapolation using the segment slope.
+ * - Polynomial : polynomial extrapolation (cubic/quintic/Hermite), matching scipy default.
+ */
+enum class ExtrapolationMode {
+    None,
+    Linear,
+    Polynomial
+};
 
 // ================================
 // Interval search strategies
@@ -304,14 +317,22 @@ protected:
     std::shared_ptr<const std::vector<double>> x_;
     std::shared_ptr<const std::vector<T>> y_;
     std::shared_ptr<IntervalSearch> search_;
+    ExtrapolationMode extrapolate_mode_;
 
 public:
+
+    static ExtrapolationMode from_bool(bool extrapolate) {
+        return extrapolate ? ExtrapolationMode::Polynomial : ExtrapolationMode::None;
+    }
+
     Interpolator(
         std::shared_ptr<const std::vector<double>> x,
-        std::shared_ptr<const std::vector<T>> y
+        std::shared_ptr<const std::vector<T>> y,
+        ExtrapolationMode extrapolate_mode
     )
         : x_(std::move(x)),
-          y_(std::move(y)) {
+          y_(std::move(y)),
+          extrapolate_mode_(extrapolate_mode) {
 
         if (!x_ || !y_) {
             INTERP_ERROR(
@@ -337,10 +358,12 @@ public:
 
     Interpolator(
         std::shared_ptr<const std::vector<T>> y,
-        std::shared_ptr<IntervalSearch> s
+        std::shared_ptr<IntervalSearch> s,
+        ExtrapolationMode extrapolate_mode
     )
         : y_(std::move(y)),
-          search_(std::move(s)) {
+          search_(std::move(s)),
+          extrapolate_mode_(extrapolate_mode) {
 
         if (!y_) {
             INTERP_ERROR(
@@ -428,30 +451,52 @@ class LinearInterpolator : public Interpolator<T> {
     using Interpolator<T>::x_;
     using Interpolator<T>::y_;
 
-    bool extrapolate_;
 
 public:
     LinearInterpolator(
         std::shared_ptr<const std::vector<double>> x,
         std::shared_ptr<const std::vector<T>> y,
-        bool extrapolate = false
+        ExtrapolationMode extrapolate = ExtrapolationMode::None
     )
         : Interpolator<T>(
             std::move(x),
-            std::move(y)
-        ),
-          extrapolate_(extrapolate) {}
+            std::move(y),
+            extrapolate
+        ) {}
 
     LinearInterpolator(
         std::shared_ptr<const std::vector<T>> y,
         std::shared_ptr<IntervalSearch> s,
-        bool extrapolate = false
+        ExtrapolationMode extrapolate = ExtrapolationMode::None
     )
         : Interpolator<T>(
             std::move(y),
-            std::move(s)
-        ),
-          extrapolate_(extrapolate) {}
+            std::move(s),
+            extrapolate
+        ) {}
+
+    // Compatibility overloads with bool (true -> Polynomial, false -> None)
+    LinearInterpolator(
+        std::shared_ptr<const std::vector<double>> x,
+        std::shared_ptr<const std::vector<T>> y,
+        bool extrapolate
+    )
+        : LinearInterpolator(
+            std::move(x),
+            std::move(y),
+            from_bool(extrapolate)
+        ) {}
+
+    LinearInterpolator(
+        std::shared_ptr<const std::vector<T>> y,
+        std::shared_ptr<IntervalSearch> s,
+        bool extrapolate
+    )
+        : LinearInterpolator(
+            std::move(y),
+            std::move(s),
+            from_bool(extrapolate)
+        ) {}
 
     T eval(double X) const override {
         const int i = this->search(X);
@@ -461,9 +506,10 @@ public:
 
         double t = (X - x0) / (x1 - x0);
 
-        if (!extrapolate_) {
+        if (extrapolate_mode_ == ExtrapolationMode::None) {
             t = clamp(t, 0.0, 1.0);
         }
+        // Linear and Polynomial both keep t unbounded
 
         return lerp(
             (*y_)[i],
@@ -502,9 +548,6 @@ protected:
 
     std::shared_ptr<const std::vector<T>> dy_dx_;
 
-    /**
-     * @brief Get interval and normalized coordinate.
-     */
     void coefficients(
         double X,
         int& i,
@@ -519,18 +562,22 @@ protected:
         h = x1 - x0;
 
         t = (X - x0) / h;
-        t = clamp(t, 0.0, 1.0);
+        if (extrapolate_mode_ == ExtrapolationMode::None) {
+            t = clamp(t, 0.0, 1.0);
+        }
     }
 
 public:
     CubicHermiteInterpolator(
         std::shared_ptr<const std::vector<double>> x,
         std::shared_ptr<const std::vector<T>> y,
-        std::shared_ptr<const std::vector<T>> dy_dx
+        std::shared_ptr<const std::vector<T>> dy_dx,
+        ExtrapolationMode extrapolate = ExtrapolationMode::None
     )
         : Interpolator<T>(
             std::move(x),
-            std::move(y)
+            std::move(y),
+            extrapolate
         ),
           dy_dx_(std::move(dy_dx)) {
         check();
@@ -539,15 +586,44 @@ public:
     CubicHermiteInterpolator(
         std::shared_ptr<const std::vector<T>> y,
         std::shared_ptr<const std::vector<T>> dy_dx,
-        std::shared_ptr<IntervalSearch> s
+        std::shared_ptr<IntervalSearch> s,
+        ExtrapolationMode extrapolate = ExtrapolationMode::None
     )
         : Interpolator<T>(
             std::move(y),
-            std::move(s)
+            std::move(s),
+            extrapolate
         ),
           dy_dx_(std::move(dy_dx)) {
         check();
     }
+
+    // Compatibility overloads with bool (true -> Polynomial, false -> None)
+    CubicHermiteInterpolator(
+        std::shared_ptr<const std::vector<double>> x,
+        std::shared_ptr<const std::vector<T>> y,
+        std::shared_ptr<const std::vector<T>> dy_dx,
+        bool extrapolate
+    )
+        : CubicHermiteInterpolator(
+            std::move(x),
+            std::move(y),
+            std::move(dy_dx),
+            from_bool(extrapolate)
+        ) {}
+
+    CubicHermiteInterpolator(
+        std::shared_ptr<const std::vector<T>> y,
+        std::shared_ptr<const std::vector<T>> dy_dx,
+        std::shared_ptr<IntervalSearch> s,
+        bool extrapolate
+    )
+        : CubicHermiteInterpolator(
+            std::move(y),
+            std::move(dy_dx),
+            std::move(s),
+            from_bool(extrapolate)
+        ) {}
 
     void check() {
         if (!dy_dx_) {
@@ -712,7 +788,7 @@ protected:
         h = x1 - x0;
 
         t = (X - x0) / h;
-        t = clamp(t, 0.0, 1.0);
+        if (extrapolate_mode_ == ExtrapolationMode::None) { t = clamp(t, 0.0, 1.0); };
     }
 
 public:
@@ -720,11 +796,13 @@ public:
         std::shared_ptr<const std::vector<double>> x,
         std::shared_ptr<const std::vector<T>> y,
         std::shared_ptr<const std::vector<T>> dy_dx,
-        std::shared_ptr<const std::vector<T>> d2y_dx2
+        std::shared_ptr<const std::vector<T>> d2y_dx2,
+        ExtrapolationMode extrapolate = ExtrapolationMode::None
     )
         : Interpolator<T>(
             std::move(x),
-            std::move(y)
+            std::move(y),
+            extrapolate
         ),
           dy_dx_(std::move(dy_dx)),
           d2y_dx2_(std::move(d2y_dx2)) {
@@ -735,16 +813,49 @@ public:
         std::shared_ptr<const std::vector<T>> y,
         std::shared_ptr<const std::vector<T>> dy_dx,
         std::shared_ptr<const std::vector<T>> d2y_dx2,
-        std::shared_ptr<IntervalSearch> s
+        std::shared_ptr<IntervalSearch> s,
+        ExtrapolationMode extrapolate = ExtrapolationMode::None
     )
         : Interpolator<T>(
             std::move(y),
-            std::move(s)
+            std::move(s),
+            extrapolate
         ),
           dy_dx_(std::move(dy_dx)),
           d2y_dx2_(std::move(d2y_dx2)) {
         check();
     }
+
+    // Compatibility overloads with bool (true -> Polynomial, false -> None)
+    QuinticHermiteInterpolator(
+        std::shared_ptr<const std::vector<double>> x,
+        std::shared_ptr<const std::vector<T>> y,
+        std::shared_ptr<const std::vector<T>> dy_dx,
+        std::shared_ptr<const std::vector<T>> d2y_dx2,
+        bool extrapolate
+    )
+        : QuinticHermiteInterpolator(
+            std::move(x),
+            std::move(y),
+            std::move(dy_dx),
+            std::move(d2y_dx2),
+            from_bool(extrapolate)
+        ) {}
+
+    QuinticHermiteInterpolator(
+        std::shared_ptr<const std::vector<T>> y,
+        std::shared_ptr<const std::vector<T>> dy_dx,
+        std::shared_ptr<const std::vector<T>> d2y_dx2,
+        std::shared_ptr<IntervalSearch> s,
+        bool extrapolate
+    )
+        : QuinticHermiteInterpolator(
+            std::move(y),
+            std::move(dy_dx),
+            std::move(d2y_dx2),
+            std::move(s),
+            from_bool(extrapolate)
+        ) {}
 
     void check() {
         if (!dy_dx_) {
@@ -970,20 +1081,24 @@ class CatmullRomInterpolator : public Interpolator<T> {
 public:
     CatmullRomInterpolator(
         std::shared_ptr<const std::vector<double>> x,
-        std::shared_ptr<const std::vector<T>> y
+        std::shared_ptr<const std::vector<T>> y,
+        ExtrapolationMode extrapolate = ExtrapolationMode::None
     )
         : Interpolator<T>(
             std::move(x),
-            std::move(y)
+            std::move(y),
+            extrapolate
         ) {}
 
     CatmullRomInterpolator(
         std::shared_ptr<const std::vector<T>> y,
-        std::shared_ptr<IntervalSearch> s
+        std::shared_ptr<IntervalSearch> s,
+        ExtrapolationMode extrapolate = ExtrapolationMode::None
     )
         : Interpolator<T>(
             std::move(y),
-            std::move(s)
+            std::move(s),
+            extrapolate
         ) {}
 
     T eval(double X) const override {
@@ -1002,10 +1117,12 @@ public:
                 ? (*x_)[i + 1]
                 : (*x_)[i + 2];
 
-        const double h = x1 - x0;
-
+        double h = x1 - x0;
         double t = (X - x0) / h;
-        t = clamp(t, 0.0, 1.0);
+        if (extrapolate_mode_ == ExtrapolationMode::None) {
+            t = clamp(t, 0.0, 1.0);
+        }
+        if (extrapolate_mode_ == ExtrapolationMode::None) { t = clamp(t, 0.0, 1.0); }
 
         const double t2 = t * t;
         const double t3 = t2 * t;

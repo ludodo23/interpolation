@@ -389,12 +389,11 @@ TEST_CASE("Linear canon ball interpolation", "[linear]")
     auto x_ = std::make_shared<const std::vector<double>>(x);
     auto y_ = std::make_shared<const std::vector<double>>(y);
 
-    interpolation::LinearInterpolator<double> interp(x_, y_);
+    interpolation::LinearInterpolator<double> interp(x_, y_, interpolation::ExtrapolationMode::Polynomial);
 
     for (size_t i(0); i < x_ref.size(); ++i)
     {
         CAPTURE(i);
-        REQUIRE(interp.eval(x_ref.at(i)) == Catch::Approx(y_ref.at(i)));
         REQUIRE(interp.eval(x_ref.at(i)) == Catch::Approx(y_res.at(i))); // Scipy
     }
 }

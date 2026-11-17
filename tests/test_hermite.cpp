@@ -386,7 +386,7 @@ TEST_CASE("Cubic Hermite canon ball interpolation", "[hermite]")
     auto y_ = std::make_shared<const std::vector<double>>(y);
     auto dy_ = std::make_shared<const std::vector<double>>(dy_dx);
 
-    interpolation::CubicHermiteInterpolator<double> h(x_, y_, dy_);
+    interpolation::CubicHermiteInterpolator<double> h(x_, y_, dy_, interpolation::ExtrapolationMode::Polynomial);
 
     for (size_t i(0); i < x_ref.size(); ++i)
     {
