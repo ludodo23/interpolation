@@ -450,6 +450,7 @@ template <typename T>
 class LinearInterpolator : public Interpolator<T> {
     using Interpolator<T>::x_;
     using Interpolator<T>::y_;
+    using Interpolator<T>::extrapolate_mode_;
 
 
 public:
@@ -484,7 +485,7 @@ public:
         : LinearInterpolator(
             std::move(x),
             std::move(y),
-            from_bool(extrapolate)
+            Interpolator<T>::from_bool(extrapolate)
         ) {}
 
     LinearInterpolator(
@@ -495,7 +496,7 @@ public:
         : LinearInterpolator(
             std::move(y),
             std::move(s),
-            from_bool(extrapolate)
+            Interpolator<T>::from_bool(extrapolate)
         ) {}
 
     T eval(double X) const override {
@@ -545,6 +546,7 @@ class CubicHermiteInterpolator : public Interpolator<T> {
 protected:
     using Interpolator<T>::x_;
     using Interpolator<T>::y_;
+    using Interpolator<T>::extrapolate_mode_;
 
     std::shared_ptr<const std::vector<T>> dy_dx_;
 
@@ -609,7 +611,7 @@ public:
             std::move(x),
             std::move(y),
             std::move(dy_dx),
-            from_bool(extrapolate)
+            Interpolator<T>::from_bool(extrapolate)
         ) {}
 
     CubicHermiteInterpolator(
@@ -622,7 +624,7 @@ public:
             std::move(y),
             std::move(dy_dx),
             std::move(s),
-            from_bool(extrapolate)
+            Interpolator<T>::from_bool(extrapolate)
         ) {}
 
     void check() {
@@ -767,6 +769,7 @@ class QuinticHermiteInterpolator : public Interpolator<T> {
 protected:
     using Interpolator<T>::x_;
     using Interpolator<T>::y_;
+    using Interpolator<T>::extrapolate_mode_;
 
     std::shared_ptr<const std::vector<T>> dy_dx_;
     std::shared_ptr<const std::vector<T>> d2y_dx2_;
@@ -839,7 +842,7 @@ public:
             std::move(y),
             std::move(dy_dx),
             std::move(d2y_dx2),
-            from_bool(extrapolate)
+            Interpolator<T>::from_bool(extrapolate)
         ) {}
 
     QuinticHermiteInterpolator(
@@ -854,7 +857,7 @@ public:
             std::move(dy_dx),
             std::move(d2y_dx2),
             std::move(s),
-            from_bool(extrapolate)
+            Interpolator<T>::from_bool(extrapolate)
         ) {}
 
     void check() {
@@ -1077,6 +1080,7 @@ template <typename T>
 class CatmullRomInterpolator : public Interpolator<T> {
     using Interpolator<T>::y_;
     using Interpolator<T>::x_;
+    using Interpolator<T>::extrapolate_mode_;
 
 public:
     CatmullRomInterpolator(
@@ -1100,6 +1104,26 @@ public:
             std::move(s),
             extrapolate
         ) {}
+    
+    CatmullRomInterpolator(
+        std::shared_ptr<const std::vector<double>> x,
+        std::shared_ptr<const std::vector<T>> y,
+        bool extrapolate
+    ) 
+        : CatmullRomInterpolator(
+            std::move(x),
+            std::move(y),
+            Interpolator<T>::from_bool(extrapolate)) {}
+
+    CatmullRomInterpolator(
+        std::shared_ptr<const std::vector<T>> y,
+        std::shared_ptr<IntervalSearch> s,
+        bool extrapolate
+    ) 
+        : CatmullRomInterpolator(
+            std::move(y),
+            std::move(s),
+            Interpolator<T>::from_bool(extrapolate)) {}
 
     T eval(double X) const override {
         const int i = this->search(X);
